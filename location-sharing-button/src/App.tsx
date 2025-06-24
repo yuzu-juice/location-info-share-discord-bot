@@ -30,10 +30,10 @@ function App() {
         message: '生存報告です！'
       })
 
-      alert('送信しました！')
+      alert('送信しました！！')
     } catch (error) {
       console.error('Error:', error)
-      alert('送信に失敗しました')
+      alert('送信に失敗しました！！')
     } finally {
       setIsLoading(false)
     }
