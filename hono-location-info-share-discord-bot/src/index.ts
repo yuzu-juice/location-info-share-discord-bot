@@ -39,6 +39,26 @@ function createGoogleMapsUrl(params: LocationParams): string {
     return url;
 }
 
+function createCorsHeaders(origin: string | null): Record<string, string> {
+    const allowedOrigins = [
+        'https://survival-report.yuzu-juice.dev',
+        'https://survival-report.netlify.app',
+        'http://localhost:5173',
+    ];
+
+    const headers: Record<string, string> = {
+        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        'Access-Control-Max-Age': '86400',
+    };
+
+    if (origin && allowedOrigins.includes(origin)) {
+        headers['Access-Control-Allow-Origin'] = origin;
+    }
+
+    return headers;
+}
+
 async function sendDiscordMessage(token: string, channelId: string, message: string): Promise<boolean> {
     try {
         const response = await fetch(`https://discord.com/api/v10/channels/${channelId}/messages`, {
@@ -66,6 +86,16 @@ async function sendDiscordMessage(token: string, channelId: string, message: str
 
 export default {
     async fetch(request, env, ctx): Promise<Response> {
+        const origin = request.headers.get('Origin');
+        const corsHeaders = createCorsHeaders(origin);
+
+        if (request.method === 'OPTIONS') {
+            return new Response(null, {
+                status: 204,
+                headers: corsHeaders,
+            });
+        }
+
         console.log('Environment variables available:', {
             hasToken: !!env.DISCORD_BOT_TOKEN,
             hasChannelId: !!env.DISCORD_CHANNEL_ID
@@ -77,7 +107,7 @@ export default {
                 if (request.method !== 'POST') {
                     return new Response(JSON.stringify({ error: 'Method not allowed' }), {
                         status: 405,
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: { 'Content-Type': 'application/json', ...corsHeaders },
                     });
                 }
 
@@ -89,7 +119,7 @@ export default {
                             error: 'Missing required parameters: latitude and longitude must be numbers'
                         }), {
                             status: 500,
-                            headers: { 'Content-Type': 'application/json' },
+                            headers: { 'Content-Type': 'application/json', ...corsHeaders },
                         });
                     }
 
@@ -98,7 +128,7 @@ export default {
                             error: 'Invalid latitude: must be between -90 and 90'
                         }), {
                             status: 500,
-                            headers: { 'Content-Type': 'application/json' },
+                            headers: { 'Content-Type': 'application/json', ...corsHeaders },
                         });
                     }
 
@@ -107,7 +137,7 @@ export default {
                             error: 'Invalid longitude: must be between -180 and 180'
                         }), {
                             status: 500,
-                            headers: { 'Content-Type': 'application/json' },
+                            headers: { 'Content-Type': 'application/json', ...corsHeaders },
                         });
                     }
 
@@ -128,12 +158,12 @@ export default {
                             url: googleMapsUrl
                         }), {
                             status: 200,
-                            headers: { 'Content-Type': 'application/json' },
+                            headers: { 'Content-Type': 'application/json', ...corsHeaders },
                         });
                     } else {
                         return new Response(JSON.stringify({ error: 'Failed to send message' }), {
                             status: 500,
-                            headers: { 'Content-Type': 'application/json' },
+                            headers: { 'Content-Type': 'application/json', ...corsHeaders },
                         });
                     }
                 } catch (error) {
@@ -141,11 +171,14 @@ export default {
                         error: 'Invalid JSON or missing parameters'
                     }), {
                         status: 500,
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: { 'Content-Type': 'application/json', ...corsHeaders },
                     });
                 }
             default:
-                return new Response('Not Found', { status: 404 });
+                return new Response('Not Found', {
+                    status: 404,
+                    headers: corsHeaders
+                });
         }
     },
 } satisfies ExportedHandler<Env>;
