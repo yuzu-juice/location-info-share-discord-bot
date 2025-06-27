@@ -6,6 +6,7 @@
 
 - **hono-location-info-share-discord-bot**: Hono API (Cloudflare Workers)
 - **location-sharing-button**: React UI (Netlify)
+- **flutter_location_publisher**: Flutterアプリ（Android対応）
 
 ## セットアップ
 
@@ -27,6 +28,14 @@ npm install
 npm run dev
 ```
 
+### Flutterアプリ (Android)
+
+```bash
+cd flutter_location_publisher
+flutter pub get
+flutter run
+```
+
 ## デプロイ
 
 ```bash
@@ -37,6 +46,10 @@ npm run deploy
 
 # フロントエンド
 GitHubにプッシュするとNetlifyに自動デプロイ
+
+# Flutterアプリ
+flutter build apk
+# 生成されたapkを配布
 ```
 
 ## API
@@ -47,3 +60,4 @@ GitHubにプッシュするとNetlifyに自動デプロイ
 
 - Hono + Cloudflare Workers
 - React + Vite + Netlify
+- Flutter
