@@ -22,7 +22,7 @@ interface LocationParams {
     pinLatitude?: number;
     pinLongitude?: number;
     zoom?: number;
-    message?: string;
+    message: string;
 }
 
 function createGoogleMapsUrl(params: LocationParams): string {
@@ -37,6 +37,32 @@ function createGoogleMapsUrl(params: LocationParams): string {
     }
 
     return url;
+}
+
+// ヒュベニの公式を使用して2点間の距離を計算する関数（メートル）
+function hubenyDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+    const a = 6378137.0; // GRS80卯酉線曲率半径
+    const b = 6356752.314140; // GRS80子午線曲率半径
+    const e2 = (a * a - b * b) / (a * a);
+
+    const radLat1 = Math.PI * lat1 / 180;
+    const radLon1 = Math.PI * lon1 / 180;
+    const radLat2 = Math.PI * lat2 / 180;
+    const radLon2 = Math.PI * lon2 / 180;
+
+    const dLat = radLat1 - radLat2;
+    const dLon = radLon1 - radLon2;
+
+    const p = (radLat1 + radLat2) / 2;
+
+    const w = Math.sqrt(1 - e2 * Math.sin(p) * Math.sin(p));
+    const m = (a * (1 - e2)) / (w * w * w); // 子午線曲率半径
+    const n = a / w; // 卯酉線曲率半径
+
+    const dx = dLat * m;
+    const dy = dLon * n * Math.cos(p);
+
+    return Math.sqrt(dx * dx + dy * dy); // 距離（メートル）
 }
 
 function createCorsHeaders(origin: string | null): Record<string, string> {
@@ -114,9 +140,9 @@ export default {
                 try {
                     const body = await request.json() as LocationParams;
 
-                    if (typeof body.latitude !== 'number' || typeof body.longitude !== 'number') {
+                    if (typeof body.latitude !== 'number' || typeof body.longitude !== 'number' || typeof body.message !== 'string') {
                         return new Response(JSON.stringify({
-                            error: 'Missing required parameters: latitude and longitude must be numbers'
+                            error: 'Missing required parameters: latitude, longitude and message must be provided'
                         }), {
                             status: 500,
                             headers: { 'Content-Type': 'application/json', ...corsHeaders },
@@ -142,9 +168,12 @@ export default {
                     }
 
                     const googleMapsUrl = createGoogleMapsUrl(body);
-                    const discordMessage = body.message
-                        ? `${body.message}\n${googleMapsUrl}`
-                        : googleMapsUrl;
+                    const fixedLat = 35.6899668;
+                    const fixedLon = 139.6884758;
+                    const distanceInMeters = hubenyDistance(body.latitude, body.longitude, fixedLat, fixedLon);
+                    const distanceInKm = (distanceInMeters / 1000).toFixed(2);
+
+                    const discordMessage = `${body.message}\n${googleMapsUrl}\n新宿中央公園からの距離: ${distanceInKm} km`;
 
                     const success = await sendDiscordMessage(
                         env.DISCORD_BOT_TOKEN,
